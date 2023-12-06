@@ -1,16 +1,33 @@
 #!/usr/bin/python3
 import time
 import serial
-
+from sys import exit
+from subprocess import run, PIPE
 # https://jetsonhacks.com/2019/10/10/jetson-nano-uart/
 # https://github.com/JetsonHacksNano/UARTDemo/blob/master/uart_example.py
 SERIAL_READ_TIMEOUT = 1  # seconds
 
+UART_DEVICE = "/dev/ttyTHS1"
+
 
 class MotorDriver:
     def __init__(self) -> None:
+        # check that no one else is using the uart port:
+        output = run(["lsof",  "-w",  "/dev/ttyTHS1"], stdout=PIPE, stderr=PIPE)
+
+        if output.stderr != b'' or output.stdout != b'' or output.returncode != 1:
+            # there is someone using the port, print that:
+            print(f"Some other process is using {UART_DEVICE}, cannot safely start another motor driver")
+            print("Kill that process, then run again")
+            print(f"stdout: {output.stdout}")
+            print(f"stderr: {output.stderr}")
+
+            # hard exit our script, continuing to run is unsafe
+            # don't raise Exception, it could be caught and neglected = bad
+            exit(1);
+
         self.serial_port = serial.Serial(
-            port="/dev/ttyTHS1",
+            port=UART_DEVICE,
             baudrate=115200,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
