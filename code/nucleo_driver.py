@@ -17,57 +17,74 @@ serial_port = serial.Serial(
 # Wait a second to let the port initialize
 time.sleep(1)
 
-control_rev = 129
-control_forward = 144
 speed_fast = 70
 speed_slow = 30
 
+# inputs are in the range [-127, 127] where positive numbers drive a motor forward, negative backwards
 def control_motors(fl: int, fr: int, bl: int, br: int):
-    assert fl <= 127
-    assert fr <= 127
-    assert bl <= 127
-    assert br <= 127
+    assert fl <= 127 and fl >= -127
+    assert fr <= 127 and fr >= -127
+    assert bl <= 127 and bl >= -127
+    assert br <= 127 and br >= -127
+
+
+
+    # drive motor control packet between [129, 144]
+
+    if bl > 0:
+        bl_bit = 1
+    else:
+        bl_bit = 0
+
+    if br > 0:
+        br_bit = 1
+    else:
+        br_bit = 0
+
+    if fl > 0:
+        fl_bit = 1
+    else:
+        fl_bit = 0
+
+    if fr > 0:
+        fr_bit = 1
+    else:
+        fr_bit = 0
+
+    
+
+    motor_dir_control_packet = 129 + ((bl_bit << 3) | (br_bit << 2) | (fl_bit << 1) | (fr_bit << 0))
+
+    print(motor_dir_control_packet)
+    serial_port.write(motor_dir_control_packet.to_bytes(1, 'big'))
+    # any slower and motor speed commands are not reliable
+    time.sleep(0.001)
+
+    serial_port.write(abs(bl).to_bytes(1, 'big'))
+    time.sleep(0.001)
+
+    serial_port.write(abs(br).to_bytes(1, 'big'))
+    time.sleep(0.001)
+
+    serial_port.write(abs(fl).to_bytes(1, 'big'))
+    time.sleep(0.001)
+
+    serial_port.write(abs(fr).to_bytes(1, 'big'))
+    time.sleep(0.001)
 
 try:
 
     # TODO: add a new control block that the jetson says to unlock/recover from locked motors
+
+    
     while True:
-        serial_port.write(control_forward.to_bytes(1, 'big'))
-        # any slower and motor speed commands are not reliable
-        time.sleep(0.001)
+        #control_motors(20, 20, 20, 20)
 
-        serial_port.write(speed_fast.to_bytes(1, 'big'))
-        time.sleep(0.001)
+        time.sleep(1)
+        control_motors(fl=-20, fr=-20, bl=20, br=20)
 
-        serial_port.write(speed_fast.to_bytes(1, 'big'))
-        time.sleep(0.001)
 
-        serial_port.write(speed_fast.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        serial_port.write(speed_fast.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        print(speed_fast)
-        time.sleep(2)
-
-        serial_port.write(control_forward.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        serial_port.write(speed_slow.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        serial_port.write(speed_slow.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        serial_port.write(speed_slow.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        serial_port.write(speed_slow.to_bytes(1, 'big'))
-        time.sleep(0.001)
-
-        print(speed_slow)
-        time.sleep(2)
+        time.sleep(1)
 
 
 except KeyboardInterrupt:
